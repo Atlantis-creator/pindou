@@ -505,7 +505,18 @@
   async function toggleShip(orderId) {
     const order = state.orders.find((entry) => entry.id === orderId);
     if (!order) return;
-    order.shippingStatus = order.shippingStatus === "shipped" ? "unshipped" : "shipped";
+    const willShip = order.shippingStatus !== "shipped";
+    if (willShip) {
+      const todoCount = order.items.filter((item) => !item.made).length;
+      if (todoCount > 0) {
+        const confirmed = confirm(`这单还有 ${todoCount} 个订单项是待做。确认已经发货吗？确认后这些订单项会自动改为已做。`);
+        if (!confirmed) return;
+        order.items.forEach((item) => {
+          item.made = true;
+        });
+      }
+    }
+    order.shippingStatus = willShip ? "shipped" : "unshipped";
     order.updatedAt = new Date().toISOString();
     await PindouDB.saveOrder(order);
     await refresh();
