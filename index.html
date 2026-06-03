@@ -1,0 +1,1510 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>拼豆排单</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(97.8% 0.02 18);
+      --surface: oklch(99% 0.012 25);
+      --surface-strong: oklch(94.5% 0.04 32);
+      --ink: oklch(22% 0.055 345);
+      --muted: oklch(49% 0.05 348);
+      --line: oklch(84% 0.04 24);
+      --bead-red: oklch(58% 0.17 10);
+      --bead-yellow: oklch(88% 0.13 83);
+      --bead-green: oklch(73% 0.12 154);
+      --bead-blue: oklch(66% 0.11 218);
+      --berry: oklch(55% 0.18 350);
+      --risk-red-bg: oklch(94% 0.05 10);
+      --risk-red-line: oklch(67% 0.15 12);
+      --risk-yellow-bg: oklch(96.5% 0.09 86);
+      --risk-yellow-line: oklch(82% 0.16 82);
+      --shadow: 0 12px 28px oklch(35% 0.05 345 / 0.13);
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --space-6: 32px;
+      --radius: 8px;
+      --tap: 44px;
+      font-family: "MiSans", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--paper);
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        linear-gradient(90deg, oklch(65% 0.13 350 / 0.075) 1px, transparent 1px),
+        linear-gradient(0deg, oklch(78% 0.12 154 / 0.055) 1px, transparent 1px),
+        var(--paper);
+      background-size: 18px 18px;
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(100%, 560px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: calc(env(safe-area-inset-top) + var(--space-4)) var(--space-4) calc(92px + env(safe-area-inset-bottom));
+      overflow-x: hidden;
+    }
+
+    .top {
+      display: grid;
+      gap: var(--space-4);
+    }
+
+    .brand {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "STSong", "SimSun", "Noto Serif SC", serif;
+      font-size: 2rem;
+      line-height: 1;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .today {
+      min-width: max-content;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-2);
+    }
+
+    .stat {
+      min-width: 0;
+      min-height: 76px;
+      padding: var(--space-3);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 5px 0 oklch(85% 0.048 25);
+      display: grid;
+      align-content: space-between;
+      gap: var(--space-2);
+    }
+
+    .stat b {
+      display: block;
+      min-width: 0;
+      font-size: 1.3rem;
+      line-height: 1.05;
+      font-weight: 900;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    .toolbar {
+      display: grid;
+      gap: var(--space-3);
+      margin-top: var(--space-5);
+    }
+
+    .search {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--space-2);
+      align-items: center;
+      min-height: var(--tap);
+      padding: var(--space-2);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .search input {
+      width: 100%;
+      min-width: 0;
+      min-height: 32px;
+      border: 0;
+      outline: none;
+      color: var(--ink);
+      background: transparent;
+      font-weight: 700;
+    }
+
+    .search button,
+    .tiny-btn {
+      min-height: 34px;
+      padding: 0 var(--space-3);
+      border-radius: 999px;
+      background: var(--surface-strong);
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-2);
+    }
+
+    .filter {
+      min-width: 0;
+      min-height: var(--tap);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: oklch(99% 0.006 72 / 0.86);
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .filter.active {
+      color: oklch(16% 0.04 58);
+      background: oklch(91% 0.09 350);
+      border-color: oklch(73% 0.13 350);
+    }
+
+    .list {
+      display: grid;
+      gap: var(--space-3);
+      margin-top: var(--space-4);
+    }
+
+    .order {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: clip;
+    }
+
+    .order.soon {
+      background: var(--risk-yellow-bg);
+      border-color: var(--risk-yellow-line);
+    }
+
+    .order.overdue {
+      background: var(--risk-red-bg);
+      border-color: var(--risk-red-line);
+    }
+
+    .order.shipped {
+      opacity: 0.72;
+    }
+
+    .order-main {
+      width: 100%;
+      padding: var(--space-4);
+      display: grid;
+      gap: var(--space-3);
+      text-align: left;
+      color: inherit;
+      background: transparent;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+
+    .customer {
+      min-width: 0;
+      display: grid;
+      gap: var(--space-1);
+    }
+
+    .customer strong {
+      overflow: hidden;
+      color: var(--ink);
+      font-size: 1.12rem;
+      line-height: 1.2;
+      font-weight: 950;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .chipline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 var(--space-3);
+      border: 1px solid oklch(78% 0.045 25);
+      border-radius: 999px;
+      background: oklch(99% 0.01 75 / 0.72);
+      color: var(--ink);
+      font-size: 0.78rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .chip.ship {
+      background: oklch(92% 0.075 154);
+      border-color: oklch(75% 0.11 154);
+    }
+
+    .chip.unship {
+      background: oklch(94% 0.05 68);
+    }
+
+    .ship-toggle {
+      min-height: 36px;
+      padding: 0 var(--space-3);
+      border: 1px solid oklch(72% 0.07 151);
+      border-radius: 999px;
+      color: var(--ink);
+      background: oklch(92% 0.075 154);
+      font-size: 0.82rem;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .ship-toggle.unshipped {
+      border-color: oklch(78% 0.06 66);
+      background: oklch(96% 0.04 68);
+    }
+
+    .single-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--space-3);
+      align-items: center;
+      padding-top: var(--space-2);
+      border-top: 1px dashed oklch(79% 0.035 70);
+    }
+
+    .item-copy {
+      min-width: 0;
+      display: grid;
+      gap: var(--space-1);
+    }
+
+    .item-copy b {
+      overflow: hidden;
+      font-size: 0.93rem;
+      line-height: 1.3;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .item-copy span {
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 750;
+    }
+
+    .make-toggle {
+      min-width: 64px;
+      min-height: 36px;
+      padding: 0 var(--space-3);
+      border: 1px solid oklch(70% 0.1 218);
+      border-radius: 999px;
+      color: oklch(24% 0.07 218);
+      background: oklch(92% 0.06 218);
+      font-size: 0.82rem;
+      font-weight: 950;
+    }
+
+    .make-toggle.todo {
+      color: oklch(24% 0.04 40);
+      border-color: oklch(82% 0.1 79);
+      background: oklch(97% 0.07 82);
+    }
+
+    .details {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 180ms cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .details.open {
+      grid-template-rows: 1fr;
+    }
+
+    .details-inner {
+      overflow: hidden;
+    }
+
+    .items {
+      display: grid;
+      gap: var(--space-2);
+      padding: 0 var(--space-4) var(--space-4);
+    }
+
+    .item-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--space-3);
+      align-items: center;
+      min-height: 58px;
+      padding: var(--space-3) 0;
+      border-top: 1px dashed oklch(79% 0.035 70);
+    }
+
+    .more {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      padding-top: var(--space-3);
+      border-top: 1px solid oklch(83% 0.033 70);
+    }
+
+    .action {
+      min-height: 38px;
+      padding: 0 var(--space-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: oklch(99% 0.006 75);
+      color: var(--ink);
+      font-weight: 850;
+    }
+
+    .action.danger {
+      color: oklch(47% 0.14 25);
+      border-color: oklch(82% 0.08 25);
+      background: oklch(97% 0.035 25);
+    }
+
+    .empty {
+      margin-top: var(--space-5);
+      padding: var(--space-5);
+      border: 1px dashed oklch(75% 0.045 68);
+      border-radius: var(--radius);
+      background: oklch(99% 0.008 75 / 0.7);
+      color: var(--muted);
+      text-align: center;
+      font-weight: 800;
+      line-height: 1.55;
+    }
+
+    .dock {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
+      pointer-events: none;
+    }
+
+    .dock-inner {
+      width: min(100%, 560px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 56px 56px;
+      gap: var(--space-2);
+      pointer-events: auto;
+    }
+
+    .primary {
+      min-width: 0;
+      min-height: 54px;
+      border-radius: var(--radius);
+      background: var(--berry);
+      color: var(--paper);
+      font-size: 1rem;
+      font-weight: 950;
+      box-shadow: 0 10px 0 oklch(48% 0.11 350 / 0.28);
+    }
+
+    .dock-btn {
+      min-width: 0;
+      min-height: 54px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 0.88rem;
+      font-weight: 950;
+      box-shadow: var(--shadow);
+    }
+
+    dialog {
+      width: min(100%, 560px);
+      max-width: none;
+      max-height: 92vh;
+      margin: auto auto 0;
+      padding: 0;
+      border: 0;
+      border-radius: var(--radius) var(--radius) 0 0;
+      background: var(--surface);
+      color: var(--ink);
+      box-shadow: 0 -16px 42px oklch(30% 0.055 345 / 0.24);
+    }
+
+    dialog::backdrop {
+      background: oklch(22% 0.04 58 / 0.38);
+    }
+
+    .sheet {
+      display: grid;
+      gap: var(--space-4);
+      padding: var(--space-4);
+    }
+
+    .sheet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+
+    .sheet h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      line-height: 1.2;
+      font-weight: 950;
+    }
+
+    .close {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      background: var(--surface-strong);
+      color: var(--ink);
+      font-size: 1.2rem;
+      font-weight: 950;
+    }
+
+    form {
+      display: grid;
+      gap: var(--space-4);
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
+    }
+
+    .field {
+      display: grid;
+      gap: var(--space-2);
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 900;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      outline: none;
+      padding: 0 var(--space-3);
+      background: oklch(99% 0.006 75);
+      color: var(--ink);
+      font-size: 0.94rem;
+      font-weight: 750;
+    }
+
+    textarea {
+      min-height: 82px;
+      padding-top: var(--space-3);
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--bead-blue);
+      box-shadow: 0 0 0 3px oklch(70% 0.12 227 / 0.2);
+    }
+
+    .form-section {
+      display: grid;
+      gap: var(--space-3);
+      padding-top: var(--space-2);
+      border-top: 1px solid var(--line);
+    }
+
+    .form-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      font-weight: 950;
+    }
+
+    .edit-item {
+      display: grid;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: oklch(97.5% 0.011 75);
+    }
+
+    .item-fields {
+      display: grid;
+      grid-template-columns: 1fr 96px;
+      gap: var(--space-3);
+    }
+
+    .item-footer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--space-3);
+      align-items: end;
+    }
+
+    .submit-row {
+      position: sticky;
+      bottom: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-2);
+      padding-top: var(--space-3);
+      background: var(--surface);
+    }
+
+    .secondary {
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface-strong);
+      color: var(--ink);
+      font-weight: 950;
+    }
+
+    .save {
+      min-height: 48px;
+      border-radius: var(--radius);
+      background: var(--berry);
+      color: var(--paper);
+      font-weight: 950;
+    }
+
+    .import-panel {
+      display: none;
+      gap: var(--space-3);
+      margin-top: var(--space-3);
+      padding: var(--space-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .import-panel.open {
+      display: grid;
+    }
+
+    .toast {
+      position: fixed;
+      right: var(--space-4);
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      left: var(--space-4);
+      z-index: 40;
+      width: min(calc(100% - 32px), 528px);
+      margin: 0 auto;
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius);
+      background: var(--berry);
+      color: var(--paper);
+      box-shadow: var(--shadow);
+      font-weight: 850;
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (min-width: 640px) {
+      .app {
+        padding-top: var(--space-6);
+      }
+
+      dialog {
+        margin: auto;
+        border-radius: var(--radius);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="top" aria-label="概览">
+      <div class="brand">
+        <h1>拼豆排单</h1>
+        <div class="today" id="todayText"></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b id="statUnshipped">0</b><span>未发顾客单</span></div>
+        <div class="stat"><b id="statTodoItems">0</b><span>待做订单项</span></div>
+        <div class="stat"><b id="statFinalDue">¥0</b><span>待收尾款</span></div>
+      </div>
+    </section>
+
+    <section class="toolbar" aria-label="筛选">
+      <div class="search">
+        <input id="searchInput" type="search" placeholder="搜顾客、内容、图片标识" autocomplete="off" />
+        <button id="clearSearch" type="button">清空</button>
+      </div>
+
+      <div class="filters" role="tablist" aria-label="订单筛选">
+        <button class="filter active" type="button" data-filter="unshipped">未发</button>
+        <button class="filter" type="button" data-filter="shipped">已发</button>
+        <button class="filter" type="button" data-filter="all">全部</button>
+      </div>
+    </section>
+
+    <section class="list" id="orderList" aria-label="订单列表"></section>
+    <section class="empty" id="emptyState" hidden>还没有订单。点下面的“新增顾客单”，把微信里确认下单的那一刻记下来。</section>
+
+    <section class="import-panel" id="importPanel" aria-label="导入备份">
+      <label for="importMode">导入方式</label>
+      <select id="importMode">
+        <option value="merge">合并到当前数据</option>
+        <option value="replace">覆盖当前数据</option>
+      </select>
+      <input id="importFile" type="file" accept=".xlsx,.xls" />
+    </section>
+  </main>
+
+  <div class="dock">
+    <div class="dock-inner">
+      <button class="primary" id="addOrderBtn" type="button">新增顾客单</button>
+      <button class="dock-btn" id="exportBtn" type="button" title="导出 Excel">导出</button>
+      <button class="dock-btn" id="importBtn" type="button" title="导入 Excel">导入</button>
+    </div>
+  </div>
+
+  <dialog id="orderDialog">
+    <div class="sheet">
+      <div class="sheet-head">
+        <h2 id="dialogTitle">新增顾客单</h2>
+        <button class="close" id="closeDialog" type="button" aria-label="关闭">×</button>
+      </div>
+
+      <form id="orderForm">
+        <input type="hidden" id="editingId" />
+        <div class="field-grid">
+          <div class="field full">
+            <label for="customerName">顾客微信名 *</label>
+            <input id="customerName" required placeholder="例如：小林 / 微信备注名" />
+          </div>
+          <div class="field">
+            <label for="recipient">收货人姓名</label>
+            <input id="recipient" placeholder="可选" />
+          </div>
+          <div class="field">
+            <label for="addressNote">收货地区/地址备注</label>
+            <input id="addressNote" placeholder="例如：上海浦东" />
+          </div>
+          <div class="field">
+            <label for="orderDate">下单日期 *</label>
+            <input id="orderDate" type="date" required />
+          </div>
+          <div class="field">
+            <label for="deadlineDate">最晚发货日期 *</label>
+            <input id="deadlineDate" type="date" required />
+          </div>
+          <div class="field">
+            <label for="deposit">定金</label>
+            <input id="deposit" type="number" min="0" step="0.01" inputmode="decimal" value="0" />
+          </div>
+          <div class="field">
+            <label for="finalPayment">尾款</label>
+            <input id="finalPayment" type="number" min="0" step="0.01" inputmode="decimal" value="0" />
+          </div>
+          <div class="field">
+            <label for="shippingFee">运费</label>
+            <input id="shippingFee" type="number" min="0" step="0.01" inputmode="decimal" value="0" />
+          </div>
+          <div class="field">
+            <label for="paymentStatus">付款状态</label>
+            <select id="paymentStatus">
+              <option value="unpaid">未付</option>
+              <option value="deposit">已付定金</option>
+              <option value="full">已付全款</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="shippingStatus">发货状态</label>
+            <select id="shippingStatus">
+              <option value="unshipped">未发</option>
+              <option value="shipped">已发</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label for="orderNote">备注</label>
+            <textarea id="orderNote" placeholder="例如：发货前提醒收尾款；礼物包装"></textarea>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">
+            <span>订单项</span>
+            <button class="tiny-btn" id="addItemBtn" type="button">加一项</button>
+          </div>
+          <div id="itemsEditor"></div>
+        </div>
+
+        <div class="submit-row">
+          <button class="secondary" id="cancelForm" type="button">取消</button>
+          <button class="save" type="submit">保存</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const STORAGE_KEY = "perler_order_board_v1";
+    const state = {
+      orders: [],
+      filter: "unshipped",
+      query: "",
+      expanded: new Set(),
+    };
+
+    const els = {
+      todayText: document.getElementById("todayText"),
+      statUnshipped: document.getElementById("statUnshipped"),
+      statTodoItems: document.getElementById("statTodoItems"),
+      statFinalDue: document.getElementById("statFinalDue"),
+      searchInput: document.getElementById("searchInput"),
+      clearSearch: document.getElementById("clearSearch"),
+      orderList: document.getElementById("orderList"),
+      emptyState: document.getElementById("emptyState"),
+      addOrderBtn: document.getElementById("addOrderBtn"),
+      exportBtn: document.getElementById("exportBtn"),
+      importBtn: document.getElementById("importBtn"),
+      importPanel: document.getElementById("importPanel"),
+      importMode: document.getElementById("importMode"),
+      importFile: document.getElementById("importFile"),
+      dialog: document.getElementById("orderDialog"),
+      dialogTitle: document.getElementById("dialogTitle"),
+      closeDialog: document.getElementById("closeDialog"),
+      form: document.getElementById("orderForm"),
+      editingId: document.getElementById("editingId"),
+      customerName: document.getElementById("customerName"),
+      recipient: document.getElementById("recipient"),
+      addressNote: document.getElementById("addressNote"),
+      orderDate: document.getElementById("orderDate"),
+      deadlineDate: document.getElementById("deadlineDate"),
+      deposit: document.getElementById("deposit"),
+      finalPayment: document.getElementById("finalPayment"),
+      shippingFee: document.getElementById("shippingFee"),
+      paymentStatus: document.getElementById("paymentStatus"),
+      shippingStatus: document.getElementById("shippingStatus"),
+      orderNote: document.getElementById("orderNote"),
+      itemsEditor: document.getElementById("itemsEditor"),
+      addItemBtn: document.getElementById("addItemBtn"),
+      cancelForm: document.getElementById("cancelForm"),
+      toast: document.getElementById("toast"),
+    };
+
+    function id() {
+      if (crypto && crypto.randomUUID) return crypto.randomUUID();
+      return `id_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    }
+
+    function todayISO() {
+      const now = new Date();
+      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+      return local.toISOString().slice(0, 10);
+    }
+
+    function dateOnly(dateString) {
+      return new Date(`${dateString}T00:00:00`);
+    }
+
+    function money(value) {
+      const number = Number(value || 0);
+      return `¥${number.toLocaleString("zh-CN", { maximumFractionDigits: 2 })}`;
+    }
+
+    function numberValue(value) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return "未填日期";
+      const d = dateOnly(dateString);
+      return `${d.getMonth() + 1}月${d.getDate()}日`;
+    }
+
+    function daysUntil(dateString) {
+      if (!dateString) return 9999;
+      const today = dateOnly(todayISO());
+      const target = dateOnly(dateString);
+      return Math.round((target - today) / 86400000);
+    }
+
+    function riskClass(order) {
+      if (order.shippingStatus === "shipped") return "shipped";
+      const days = daysUntil(order.deadlineDate);
+      if (days < 0) return "overdue";
+      if (days <= 2) return "soon";
+      return "";
+    }
+
+    function paymentText(value) {
+      return {
+        unpaid: "未付",
+        deposit: "已付定金",
+        full: "已付全款",
+      }[value] || "未付";
+    }
+
+    function makeProgress(order) {
+      const total = order.items.length || 0;
+      const done = order.items.filter((item) => item.made).length;
+      if (!total) return "待做 · 0/0";
+      return done === total ? `已做 · ${done}/${total}` : `待做 · ${done}/${total}`;
+    }
+
+    function normalizeOrder(order) {
+      return {
+        id: order.id || id(),
+        customerName: String(order.customerName || "").trim(),
+        recipient: String(order.recipient || "").trim(),
+        addressNote: String(order.addressNote || "").trim(),
+        orderDate: order.orderDate || todayISO(),
+        deadlineDate: order.deadlineDate || todayISO(),
+        deposit: numberValue(order.deposit),
+        finalPayment: numberValue(order.finalPayment),
+        shippingFee: numberValue(order.shippingFee),
+        paymentStatus: order.paymentStatus || "unpaid",
+        shippingStatus: order.shippingStatus || "unshipped",
+        note: String(order.note || "").trim(),
+        items: Array.isArray(order.items) && order.items.length ? order.items.map((item) => ({
+          id: item.id || id(),
+          description: String(item.description || "").trim(),
+          qty: Math.max(1, Number.parseInt(item.qty || 1, 10)),
+          imageMark: String(item.imageMark || "").trim(),
+          made: Boolean(item.made),
+        })) : [{
+          id: id(),
+          description: "",
+          qty: 1,
+          imageMark: "",
+          made: false,
+        }],
+        updatedAt: order.updatedAt || new Date().toISOString(),
+      };
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        state.orders = raw ? JSON.parse(raw).map(normalizeOrder) : [];
+      } catch (error) {
+        state.orders = [];
+        toast("本地数据读取失败，已从空列表开始");
+      }
+    }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.orders));
+    }
+
+    function toast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => els.toast.classList.remove("show"), 2200);
+    }
+
+    function computeStats() {
+      const unshipped = state.orders.filter((order) => order.shippingStatus !== "shipped");
+      const todoItems = unshipped.reduce((sum, order) => sum + order.items.filter((item) => !item.made).length, 0);
+      const finalDue = unshipped.reduce((sum, order) => order.paymentStatus === "full" ? sum : sum + numberValue(order.finalPayment), 0);
+      els.statUnshipped.textContent = unshipped.length;
+      els.statTodoItems.textContent = todoItems;
+      els.statFinalDue.textContent = money(finalDue);
+    }
+
+    function matchesQuery(order) {
+      if (!state.query) return true;
+      const haystack = [
+        order.customerName,
+        order.recipient,
+        order.addressNote,
+        order.note,
+        ...order.items.flatMap((item) => [item.description, item.imageMark]),
+      ].join(" ").toLowerCase();
+      return haystack.includes(state.query.toLowerCase());
+    }
+
+    function visibleOrders() {
+      return state.orders
+        .filter((order) => {
+          if (state.filter === "unshipped" && order.shippingStatus === "shipped") return false;
+          if (state.filter === "shipped" && order.shippingStatus !== "shipped") return false;
+          return matchesQuery(order);
+        })
+        .sort((a, b) => {
+          if (a.shippingStatus !== b.shippingStatus) return a.shippingStatus === "unshipped" ? -1 : 1;
+          return dateOnly(a.deadlineDate) - dateOnly(b.deadlineDate);
+        });
+    }
+
+    function render() {
+      els.todayText.textContent = `今天 ${formatDate(todayISO())}`;
+      computeStats();
+      renderList();
+    }
+
+    function renderList() {
+      const orders = visibleOrders();
+      els.orderList.innerHTML = "";
+      els.emptyState.hidden = orders.length > 0;
+
+      for (const order of orders) {
+        const isMulti = order.items.length > 1;
+        const isOpen = !isMulti || state.expanded.has(order.id);
+        const orderEl = document.createElement("article");
+        orderEl.className = ["order", riskClass(order)].filter(Boolean).join(" ");
+
+        const firstItem = order.items[0];
+        const main = document.createElement("div");
+        main.className = "order-main";
+        main.tabIndex = 0;
+        main.setAttribute("role", "button");
+        main.innerHTML = `
+          <div class="row">
+            <div class="customer">
+              <strong>${escapeHtml(order.customerName || "未命名顾客")}</strong>
+              <div class="meta">
+                <span>${formatDate(order.deadlineDate)}前发</span>
+                <span>${order.items.length} 个订单项</span>
+                <span>${paymentText(order.paymentStatus)}</span>
+              </div>
+            </div>
+            <button class="ship-toggle ${order.shippingStatus === "shipped" ? "" : "unshipped"}" type="button" data-action="toggle-ship" data-id="${order.id}">
+              ${order.shippingStatus === "shipped" ? "已发" : "未发"}
+            </button>
+          </div>
+          <div class="chipline">
+            <span class="chip">${makeProgress(order)}</span>
+            <span class="chip ${order.shippingStatus === "shipped" ? "ship" : "unship"}">${order.shippingStatus === "shipped" ? "已发" : "未发"}</span>
+            <span class="chip">${money(numberValue(order.deposit) + numberValue(order.finalPayment) + numberValue(order.shippingFee))}</span>
+          </div>
+          ${!isMulti ? singleItemHtml(firstItem, order.id) : ""}
+        `;
+        main.addEventListener("click", (event) => {
+          if (event.target.closest("[data-action]")) return;
+          if (isMulti) toggleExpanded(order.id);
+          else openOrder(order.id);
+        });
+        main.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          if (isMulti) toggleExpanded(order.id);
+          else openOrder(order.id);
+        });
+        orderEl.append(main);
+
+        if (isMulti) {
+          const details = document.createElement("div");
+          details.className = `details ${isOpen ? "open" : ""}`;
+          details.innerHTML = `
+            <div class="details-inner">
+              <div class="items">
+                ${order.items.map((item) => itemRowHtml(item, order.id)).join("")}
+                <div class="more">
+                  <button class="action" type="button" data-action="edit" data-id="${order.id}">编辑</button>
+                  <button class="action" type="button" data-action="duplicate" data-id="${order.id}">复制</button>
+                  <button class="action danger" type="button" data-action="delete" data-id="${order.id}">删除</button>
+                </div>
+              </div>
+            </div>
+          `;
+          orderEl.append(details);
+        } else {
+          const actions = document.createElement("div");
+          actions.className = "items";
+          actions.innerHTML = `
+            <div class="more">
+              <button class="action" type="button" data-action="edit" data-id="${order.id}">编辑</button>
+              <button class="action" type="button" data-action="duplicate" data-id="${order.id}">复制</button>
+              <button class="action danger" type="button" data-action="delete" data-id="${order.id}">删除</button>
+            </div>
+          `;
+          orderEl.append(actions);
+        }
+
+        els.orderList.append(orderEl);
+      }
+    }
+
+    function singleItemHtml(item, orderId) {
+      return `
+        <div class="single-item">
+          <div class="item-copy">
+            <b>${escapeHtml(item.description || "未填写内容")}</b>
+            <span>${escapeHtml(item.imageMark || "无图片标识")} · ${item.qty || 1} 个</span>
+          </div>
+          <button class="make-toggle ${item.made ? "" : "todo"}" type="button" data-action="toggle-made" data-order-id="${orderId}" data-item-id="${item.id}">
+            ${item.made ? "已做" : "待做"}
+          </button>
+        </div>
+      `;
+    }
+
+    function itemRowHtml(item, orderId) {
+      return `
+        <div class="item-row">
+          <div class="item-copy">
+            <b>${escapeHtml(item.description || "未填写内容")}</b>
+            <span>${escapeHtml(item.imageMark || "无图片标识")} · ${item.qty || 1} 个</span>
+          </div>
+          <button class="make-toggle ${item.made ? "" : "todo"}" type="button" data-action="toggle-made" data-order-id="${orderId}" data-item-id="${item.id}">
+            ${item.made ? "已做" : "待做"}
+          </button>
+        </div>
+      `;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      }[char]));
+    }
+
+    function toggleExpanded(orderId) {
+      if (state.expanded.has(orderId)) state.expanded.delete(orderId);
+      else state.expanded.add(orderId);
+      renderList();
+    }
+
+    function openOrder(orderId) {
+      const order = state.orders.find((entry) => entry.id === orderId);
+      if (!order) return;
+      els.dialogTitle.textContent = "编辑顾客单";
+      fillForm(order);
+      els.dialog.showModal();
+    }
+
+    function newOrder() {
+      els.dialogTitle.textContent = "新增顾客单";
+      fillForm(normalizeOrder({
+        orderDate: todayISO(),
+        deadlineDate: todayISO(),
+        items: [{ id: id(), description: "", qty: 1, imageMark: "", made: false }],
+      }));
+      els.editingId.value = "";
+      els.dialog.showModal();
+      setTimeout(() => els.customerName.focus(), 30);
+    }
+
+    function fillForm(order) {
+      els.editingId.value = order.id || "";
+      els.customerName.value = order.customerName || "";
+      els.recipient.value = order.recipient || "";
+      els.addressNote.value = order.addressNote || "";
+      els.orderDate.value = order.orderDate || todayISO();
+      els.deadlineDate.value = order.deadlineDate || todayISO();
+      els.deposit.value = order.deposit || 0;
+      els.finalPayment.value = order.finalPayment || 0;
+      els.shippingFee.value = order.shippingFee || 0;
+      els.paymentStatus.value = order.paymentStatus || "unpaid";
+      els.shippingStatus.value = order.shippingStatus || "unshipped";
+      els.orderNote.value = order.note || "";
+      renderItemsEditor(order.items);
+    }
+
+    function renderItemsEditor(items) {
+      els.itemsEditor.innerHTML = "";
+      items.forEach((item) => {
+        const node = document.createElement("div");
+        node.className = "edit-item";
+        node.dataset.itemId = item.id || id();
+        node.innerHTML = `
+          <div class="item-fields">
+            <div class="field">
+              <label>内容描述 *</label>
+              <input data-field="description" required placeholder="例如：草莓熊挂件" value="${escapeAttribute(item.description || "")}" />
+            </div>
+            <div class="field">
+              <label>数量</label>
+              <input data-field="qty" type="number" min="1" step="1" inputmode="numeric" value="${item.qty || 1}" />
+            </div>
+          </div>
+          <div class="item-footer">
+            <div class="field">
+              <label>图片标识</label>
+              <input data-field="imageMark" placeholder="例如：顾客第2张图" value="${escapeAttribute(item.imageMark || "")}" />
+            </div>
+            <button class="make-toggle ${item.made ? "" : "todo"}" type="button" data-edit-toggle>${item.made ? "已做" : "待做"}</button>
+          </div>
+          <button class="action danger" type="button" data-remove-item>删除这一项</button>
+        `;
+        node.querySelector("[data-edit-toggle]").dataset.made = item.made ? "true" : "false";
+        els.itemsEditor.append(node);
+      });
+    }
+
+    function escapeAttribute(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      }[char]));
+    }
+
+    function readItemsEditor() {
+      return [...els.itemsEditor.querySelectorAll(".edit-item")].map((node) => ({
+        id: node.dataset.itemId || id(),
+        description: node.querySelector('[data-field="description"]').value.trim(),
+        qty: Math.max(1, Number.parseInt(node.querySelector('[data-field="qty"]').value || "1", 10)),
+        imageMark: node.querySelector('[data-field="imageMark"]').value.trim(),
+        made: node.querySelector("[data-edit-toggle]").dataset.made === "true",
+      })).filter((item) => item.description || item.imageMark);
+    }
+
+    function orderFromForm() {
+      return normalizeOrder({
+        id: els.editingId.value || id(),
+        customerName: els.customerName.value,
+        recipient: els.recipient.value,
+        addressNote: els.addressNote.value,
+        orderDate: els.orderDate.value,
+        deadlineDate: els.deadlineDate.value,
+        deposit: els.deposit.value,
+        finalPayment: els.finalPayment.value,
+        shippingFee: els.shippingFee.value,
+        paymentStatus: els.paymentStatus.value,
+        shippingStatus: els.shippingStatus.value,
+        note: els.orderNote.value,
+        items: readItemsEditor(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    function upsertOrder(order) {
+      const index = state.orders.findIndex((entry) => entry.id === order.id);
+      if (index >= 0) state.orders[index] = order;
+      else state.orders.push(order);
+      save();
+      render();
+    }
+
+    function duplicateOrder(orderId) {
+      const order = state.orders.find((entry) => entry.id === orderId);
+      if (!order) return;
+      const copy = normalizeOrder({
+        ...JSON.parse(JSON.stringify(order)),
+        id: id(),
+        customerName: `${order.customerName} 副本`,
+        shippingStatus: "unshipped",
+        items: order.items.map((item) => ({ ...item, id: id(), made: false })),
+        updatedAt: new Date().toISOString(),
+      });
+      state.orders.push(copy);
+      save();
+      render();
+      toast("已复制顾客单");
+    }
+
+    function deleteOrder(orderId) {
+      const order = state.orders.find((entry) => entry.id === orderId);
+      if (!order) return;
+      if (!confirm(`删除 ${order.customerName || "这条顾客单"}？`)) return;
+      state.orders = state.orders.filter((entry) => entry.id !== orderId);
+      save();
+      render();
+      toast("已删除");
+    }
+
+    function toggleShip(orderId) {
+      const order = state.orders.find((entry) => entry.id === orderId);
+      if (!order) return;
+      order.shippingStatus = order.shippingStatus === "shipped" ? "unshipped" : "shipped";
+      order.updatedAt = new Date().toISOString();
+      save();
+      render();
+    }
+
+    function toggleMade(orderId, itemId) {
+      const order = state.orders.find((entry) => entry.id === orderId);
+      if (!order) return;
+      const item = order.items.find((entry) => entry.id === itemId);
+      if (!item) return;
+      item.made = !item.made;
+      order.updatedAt = new Date().toISOString();
+      save();
+      render();
+    }
+
+    function ensureXlsx() {
+      if (window.XLSX) return true;
+      toast("Excel 功能需要联网加载 SheetJS，当前未加载成功");
+      return false;
+    }
+
+    function exportExcel() {
+      if (!ensureXlsx()) return;
+      const customerRows = state.orders.map((order) => ({
+        内部ID: order.id,
+        顾客微信名: order.customerName,
+        收货人姓名: order.recipient,
+        地址备注: order.addressNote,
+        下单日期: order.orderDate,
+        最晚发货日期: order.deadlineDate,
+        定金: order.deposit,
+        尾款: order.finalPayment,
+        运费: order.shippingFee,
+        付款状态: paymentText(order.paymentStatus),
+        付款状态代码: order.paymentStatus,
+        发货状态: order.shippingStatus === "shipped" ? "已发" : "未发",
+        发货状态代码: order.shippingStatus,
+        备注: order.note,
+        更新时间: order.updatedAt,
+      }));
+      const itemRows = state.orders.flatMap((order) => order.items.map((item) => ({
+        顾客单ID: order.id,
+        订单项ID: item.id,
+        顾客微信名: order.customerName,
+        内容描述: item.description,
+        数量: item.qty,
+        图片标识: item.imageMark,
+        制作状态: item.made ? "已做" : "待做",
+        制作状态代码: item.made ? "done" : "todo",
+      })));
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(customerRows), "顾客单");
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(itemRows), "订单项");
+      XLSX.writeFile(workbook, `拼豆排单备份_${todayISO()}.xlsx`);
+      toast("已导出 Excel 备份");
+    }
+
+    async function importExcel(file, mode) {
+      if (!ensureXlsx() || !file) return;
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+      const customerSheet = workbook.Sheets["顾客单"] || workbook.Sheets[workbook.SheetNames[0]];
+      const itemSheet = workbook.Sheets["订单项"] || workbook.Sheets[workbook.SheetNames[1]];
+      const customerRows = XLSX.utils.sheet_to_json(customerSheet, { defval: "" });
+      const itemRows = itemSheet ? XLSX.utils.sheet_to_json(itemSheet, { defval: "" }) : [];
+      const imported = customerRows.map((row) => {
+        const orderId = row["内部ID"] || id();
+        const items = itemRows
+          .filter((item) => String(item["顾客单ID"]) === String(orderId))
+          .map((item) => ({
+            id: item["订单项ID"] || id(),
+            description: item["内容描述"] || "",
+            qty: item["数量"] || 1,
+            imageMark: item["图片标识"] || "",
+            made: (item["制作状态代码"] || item["制作状态"]) === "done" || item["制作状态"] === "已做",
+          }));
+        return normalizeOrder({
+          id: orderId,
+          customerName: row["顾客微信名"] || "",
+          recipient: row["收货人姓名"] || "",
+          addressNote: row["地址备注"] || "",
+          orderDate: excelDate(row["下单日期"]),
+          deadlineDate: excelDate(row["最晚发货日期"]),
+          deposit: row["定金"] || 0,
+          finalPayment: row["尾款"] || 0,
+          shippingFee: row["运费"] || 0,
+          paymentStatus: row["付款状态代码"] || paymentCode(row["付款状态"]),
+          shippingStatus: row["发货状态代码"] || (row["发货状态"] === "已发" ? "shipped" : "unshipped"),
+          note: row["备注"] || "",
+          updatedAt: row["更新时间"] || new Date().toISOString(),
+          items,
+        });
+      });
+
+      if (mode === "replace") {
+        state.orders = imported;
+      } else {
+        const byId = new Map(state.orders.map((order) => [order.id, order]));
+        imported.forEach((order) => byId.set(order.id, order));
+        state.orders = [...byId.values()];
+      }
+      save();
+      render();
+      els.importFile.value = "";
+      toast(mode === "replace" ? "已覆盖导入" : "已合并导入");
+    }
+
+    function paymentCode(text) {
+      if (text === "已付全款") return "full";
+      if (text === "已付定金") return "deposit";
+      return "unpaid";
+    }
+
+    function excelDate(value) {
+      if (!value) return todayISO();
+      if (value instanceof Date) {
+        const local = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
+        return local.toISOString().slice(0, 10);
+      }
+      if (typeof value === "number") {
+        const parsed = XLSX.SSF.parse_date_code(value);
+        if (parsed) return `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`;
+      }
+      return String(value).slice(0, 10);
+    }
+
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-action]");
+      if (!target) return;
+      event.stopPropagation();
+      const action = target.dataset.action;
+      if (action === "toggle-ship") toggleShip(target.dataset.id);
+      if (action === "toggle-made") toggleMade(target.dataset.orderId, target.dataset.itemId);
+      if (action === "edit") openOrder(target.dataset.id);
+      if (action === "duplicate") duplicateOrder(target.dataset.id);
+      if (action === "delete") deleteOrder(target.dataset.id);
+    });
+
+    els.addOrderBtn.addEventListener("click", newOrder);
+    els.closeDialog.addEventListener("click", () => els.dialog.close());
+    els.cancelForm.addEventListener("click", () => els.dialog.close());
+    els.exportBtn.addEventListener("click", exportExcel);
+    els.importBtn.addEventListener("click", () => {
+      els.importPanel.classList.toggle("open");
+      if (els.importPanel.classList.contains("open")) toast("请选择备份文件，可覆盖或合并");
+    });
+    els.importFile.addEventListener("change", (event) => importExcel(event.target.files[0], els.importMode.value));
+    els.searchInput.addEventListener("input", (event) => {
+      state.query = event.target.value.trim();
+      renderList();
+    });
+    els.clearSearch.addEventListener("click", () => {
+      state.query = "";
+      els.searchInput.value = "";
+      renderList();
+    });
+    document.querySelectorAll(".filter").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.filter = button.dataset.filter;
+        document.querySelectorAll(".filter").forEach((entry) => entry.classList.toggle("active", entry === button));
+        renderList();
+      });
+    });
+    els.addItemBtn.addEventListener("click", () => {
+      const items = readItemsEditor();
+      items.push({ id: id(), description: "", qty: 1, imageMark: "", made: false });
+      renderItemsEditor(items);
+      els.itemsEditor.lastElementChild?.querySelector('[data-field="description"]')?.focus();
+    });
+    els.itemsEditor.addEventListener("click", (event) => {
+      const remove = event.target.closest("[data-remove-item]");
+      const toggle = event.target.closest("[data-edit-toggle]");
+      if (remove) {
+        if (els.itemsEditor.children.length <= 1) {
+          toast("至少保留一个订单项");
+          return;
+        }
+        remove.closest(".edit-item").remove();
+      }
+      if (toggle) {
+        const next = toggle.dataset.made !== "true";
+        toggle.dataset.made = next ? "true" : "false";
+        toggle.textContent = next ? "已做" : "待做";
+        toggle.classList.toggle("todo", !next);
+      }
+    });
+    els.form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const order = orderFromForm();
+      if (!order.customerName) {
+        toast("顾客微信名必填");
+        return;
+      }
+      if (!order.items.some((item) => item.description || item.imageMark)) {
+        toast("至少填写一个订单项");
+        return;
+      }
+      upsertOrder(order);
+      els.dialog.close();
+      toast("已保存");
+    });
+
+    load();
+    render();
+  </script>
+</body>
+</html>
