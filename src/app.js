@@ -397,7 +397,12 @@
 
   function imageSlotContent(image, slot) {
     return `
-      ${image ? `<img data-editor-image-id="${image.id}" alt="订单图片" />` : `<div class="empty-image">空位 ${slot + 1}</div>`}
+      ${image ? `<img data-editor-image-id="${image.id}" alt="订单图片" />` : `
+        <div class="empty-image">
+          <strong>空位 ${slot + 1}</strong>
+          <span>电脑可拖图片到这里</span>
+        </div>
+      `}
       <div class="image-actions">
         <label class="image-upload">
           ${image ? "替换" : "添加"}
@@ -465,11 +470,9 @@
     toast("已保存");
   }
 
-  async function handleImageUpload(input) {
-    const file = input.files && input.files[0];
-    input.value = "";
-    if (!file) return;
-    const slot = input.closest(".image-slot");
+  async function saveImageToSlot(file, slot, shouldConfirmReplace = false) {
+    if (!file || !slot) return;
+    if (shouldConfirmReplace && slot.dataset.imageJson && !confirm("这个位置已有图片，确定替换吗？")) return;
     try {
       toast("正在压缩图片");
       const result = await PindouImage.compress(file);
@@ -492,6 +495,41 @@
     } catch (error) {
       toast(error.message || "图片处理失败");
     }
+  }
+
+  async function handleImageUpload(input) {
+    const file = input.files && input.files[0];
+    input.value = "";
+    if (!file) return;
+    await saveImageToSlot(file, input.closest(".image-slot"));
+  }
+
+  function hasDraggedFiles(event) {
+    return [...(event.dataTransfer?.types || [])].includes("Files");
+  }
+
+  function clearDropTargets() {
+    els.itemsEditor.querySelectorAll(".image-slot.drag-over").forEach((slot) => {
+      slot.classList.remove("drag-over");
+    });
+  }
+
+  async function handleImageDrop(event) {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    const slot = event.target.closest(".image-slot");
+    clearDropTargets();
+    if (!slot) {
+      toast("请把图片拖到具体的图片空位");
+      return;
+    }
+    const files = [...(event.dataTransfer?.files || [])];
+    if (!files.length) {
+      toast("没有读取到图片，请改用“添加”选择图片");
+      return;
+    }
+    if (files.length > 1) toast("每个图片位置一次只接收 1 张");
+    await saveImageToSlot(files[0], slot, true);
   }
 
   async function removeImage(button) {
@@ -687,6 +725,27 @@
   els.itemsEditor.addEventListener("change", (event) => {
     const input = event.target.closest("[data-image-input]");
     if (input) handleImageUpload(input);
+  });
+  els.itemsEditor.addEventListener("dragover", (event) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    const slot = event.target.closest(".image-slot");
+    clearDropTargets();
+    slot?.classList.add("drag-over");
+  });
+  els.itemsEditor.addEventListener("dragleave", (event) => {
+    if (!els.itemsEditor.contains(event.relatedTarget)) clearDropTargets();
+  });
+  els.itemsEditor.addEventListener("drop", handleImageDrop);
+  document.addEventListener("dragover", (event) => {
+    if (hasDraggedFiles(event)) event.preventDefault();
+  });
+  document.addEventListener("drop", (event) => {
+    if (!hasDraggedFiles(event) || els.itemsEditor.contains(event.target)) return;
+    event.preventDefault();
+    clearDropTargets();
+    toast("请先打开订单，再把图片拖到图片空位");
   });
   els.orderForm.addEventListener("submit", (event) => {
     event.preventDefault();

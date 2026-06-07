@@ -634,6 +634,12 @@ textarea:focus {
   background: oklch(99% 0.008 25 / 0.78);
 }
 
+.image-slot.drag-over {
+  border-color: var(--berry);
+  background: oklch(95% 0.045 15);
+  box-shadow: 0 0 0 3px oklch(66% 0.12 15 / 0.18);
+}
+
 .image-slot img,
 .image-slot .empty-image {
   width: 100%;
@@ -647,9 +653,25 @@ textarea:focus {
 .empty-image {
   display: grid;
   place-items: center;
+  align-content: center;
+  gap: 0.25rem;
+  text-align: center;
   color: var(--muted);
   font-size: 0.75rem;
   font-weight: 900;
+}
+
+.empty-image strong {
+  color: var(--ink);
+  font-size: 0.82rem;
+}
+
+.empty-image span {
+  font-size: 0.68rem;
+}
+
+.image-slot.drag-over .empty-image {
+  color: var(--berry);
 }
 
 .image-actions {
